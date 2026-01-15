@@ -10,7 +10,7 @@ export default async function handler(request) {
     return new Response('Error: TARGET_DOMAIN is not set.', { status: 500 });
   }
 
-  // 1. 处理 OPTIONS 预检请求 (解决跨域问题)
+  // 处理 OPTIONS 跨域预检
   if (request.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -25,15 +25,35 @@ export default async function handler(request) {
   try {
     const url = new URL(request.url);
     
-    // 移除 /api 前缀
-    // vercel.json 将所有请求 /(.*) 重写到了 /api/$1
-    // 把 /api 去掉，还原出原始路径 /v1/chat...
-    const originalPath = url.pathname.replace(/^\/api/, '');
+    // 【核心修正】逻辑说明：
+    // Vercel 路由是 /api/[...path]
+    // 假设用户访问 https://your.com/management.html
+    // Vercel 内部重写为 https://your.com/api/management.html
+    // 我们需要去掉 /api，保留 /management.html
     
-    const targetUrl = new URL(originalPath + url.search, TARGET_DOMAIN);
+    let path = url.pathname;
+    if (path.startsWith('/api')) {
+        path = path.replace(/^\/api/, '');
+    }
+
+    // 处理根路径情况 (如果访问 /api，变成了空字符串，需要补为 /)
+    if (path === '') {
+        path = '/';
+    }
+
+    // 拼接目标 URL
+    // 注意：使用字符串拼接比 new URL() 更安全，防止 TARGET_DOMAIN 自带子路径被覆盖
+    // 假设 TARGET_DOMAIN 是 https://hf.co
+    // targetUrl 变成 https://hf.co/management.html
+    const targetUrlString = TARGET_DOMAIN.replace(/\/$/, '') + path + url.search;
+    const targetUrl = new URL(targetUrlString);
+
+    // 【调试日志】部署后在 Vercel Functions Logs 里可以看到
+    console.log(`[Proxy] ${request.method} ${url.pathname} -> ${targetUrl.toString()}`);
 
     const headers = new Headers(request.headers);
     headers.delete('host');
+    // 伪装来源
     headers.set('origin', TARGET_DOMAIN);
     headers.set('referer', TARGET_DOMAIN + '/');
 
@@ -41,14 +61,12 @@ export default async function handler(request) {
       method: request.method,
       headers: headers,
       body: request.body,
-      redirect: 'manual',
+      redirect: 'manual', // 让浏览器处理重定向
     });
 
     const responseHeaders = new Headers(response.headers);
     responseHeaders.delete('content-encoding');
     responseHeaders.delete('content-length');
-    
-    // 3. 注入 CORS 头 (允许任何网站调用此接口)
     responseHeaders.set('Access-Control-Allow-Origin', '*');
 
     return new Response(response.body, {
@@ -58,6 +76,7 @@ export default async function handler(request) {
     });
 
   } catch (error) {
+    console.error('[Proxy Error]', error);
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { 'content-type': 'application/json' },
