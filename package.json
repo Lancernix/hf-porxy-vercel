@@ -4,8 +4,7 @@
   "description": "Simple proxy service for Vercel",
   "main": "api/index.js",
   "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'No build step needed for edge functions'"
+    "dev": "vercel dev"
   },
   "keywords": ["proxy", "vercel"],
   "author": "",
