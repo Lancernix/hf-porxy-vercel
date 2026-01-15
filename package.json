@@ -1,0 +1,14 @@
+{
+  "name": "hf-proxy-vercel",
+  "version": "1.0.0",
+  "description": "Simple proxy service for Vercel",
+  "main": "api/index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "vercel build"
+  },
+  "keywords": ["proxy", "vercel"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {}
+}
