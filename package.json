@@ -5,7 +5,7 @@
   "main": "api/index.js",
   "scripts": {
     "dev": "vercel dev",
-    "build": "vercel build"
+    "build": "echo 'No build step needed for edge functions'"
   },
   "keywords": ["proxy", "vercel"],
   "author": "",
