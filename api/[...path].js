@@ -10,7 +10,6 @@ export default async function handler(request) {
     return new Response('Error: TARGET_DOMAIN is not set.', { status: 500 });
   }
 
-  // 处理 OPTIONS 跨域预检
   if (request.method === 'OPTIONS') {
     return new Response(null, {
       status: 204,
@@ -25,35 +24,32 @@ export default async function handler(request) {
   try {
     const url = new URL(request.url);
     
-    // 【核心修正】逻辑说明：
-    // Vercel 路由是 /api/[...path]
-    // 假设用户访问 https://your.com/management.html
-    // Vercel 内部重写为 https://your.com/api/management.html
-    // 我们需要去掉 /api，保留 /management.html
-    
+    // 1. 路径清理
     let path = url.pathname;
     if (path.startsWith('/api')) {
         path = path.replace(/^\/api/, '');
     }
-
-    // 处理根路径情况 (如果访问 /api，变成了空字符串，需要补为 /)
     if (path === '') {
         path = '/';
     }
 
-    // 拼接目标 URL
-    // 注意：使用字符串拼接比 new URL() 更安全，防止 TARGET_DOMAIN 自带子路径被覆盖
-    // 假设 TARGET_DOMAIN 是 https://hf.co
-    // targetUrl 变成 https://hf.co/management.html
-    const targetUrlString = TARGET_DOMAIN.replace(/\/$/, '') + path + url.search;
+    // 2. 【核心修复】清理 Vercel 注入的 'path' 参数
+    // 这里的 'path' 必须和你文件名 [...path].js 里的名字一致
+    url.searchParams.delete('path'); 
+    
+    // 3. 重新构建干净的查询字符串
+    // 如果用户真的传了 ?q=hello，这里会保留；如果没传，这里就是空的
+    const cleanSearch = url.searchParams.toString();
+    const searchPart = cleanSearch ? `?${cleanSearch}` : '';
+
+    // 4. 拼接最终目标 URL
+    const targetUrlString = TARGET_DOMAIN.replace(/\/$/, '') + path + searchPart;
     const targetUrl = new URL(targetUrlString);
 
-    // 【调试日志】部署后在 Vercel Functions Logs 里可以看到
     console.log(`[Proxy] ${request.method} ${url.pathname} -> ${targetUrl.toString()}`);
 
     const headers = new Headers(request.headers);
     headers.delete('host');
-    // 伪装来源
     headers.set('origin', TARGET_DOMAIN);
     headers.set('referer', TARGET_DOMAIN + '/');
 
@@ -61,7 +57,7 @@ export default async function handler(request) {
       method: request.method,
       headers: headers,
       body: request.body,
-      redirect: 'manual', // 让浏览器处理重定向
+      redirect: 'manual', 
     });
 
     const responseHeaders = new Headers(response.headers);
