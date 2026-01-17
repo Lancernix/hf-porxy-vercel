@@ -77,10 +77,7 @@ export default async function handler(request) {
   try {
     const url = new URL(request.url);
     
-    let pathname = url.pathname;
-    if (pathname.startsWith('/api')) {
-      pathname = pathname.replace(/^\/api/, '');
-    }
+    const pathname = url.pathname;
     const search = url.search;
 
     // 2. 缓存 Body
