@@ -1,7 +1,27 @@
 export const config = {
   runtime: 'edge',
-  // 完美覆盖：Render(美西) + Zeabur(新加坡/雅加达)
-  regions: ["pdx1", "sin1", "sfo1", "iad1"],
+  regions: [
+    'arn1',
+    'bom1',
+    'cdg1',
+    'cle1',
+    // 'cpt1',
+    'dub1',
+    'dxb1',
+    'fra1',
+    'gru1',
+    'hkg1',
+    'hnd1',
+    'iad1',
+    'icn1',
+    'kix1',
+    'lhr1',
+    'pdx1',
+    'sfo1',
+    // 'sin1',
+    'syd1',
+    "yul1"
+  ],
 };
 
 // 默认超时 60秒
